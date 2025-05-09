@@ -1,6 +1,5 @@
 import React from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
 
 const MapComponent: React.FC = () => {
   const position: [number, number] = [-9.597, -35.954]; // Pilar, Alagoas
