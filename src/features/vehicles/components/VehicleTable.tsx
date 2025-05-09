@@ -1,34 +1,46 @@
-import React from 'react';
+import React from "react"
+import { useVehicleTableViewModel } from "../viewmodel/useVehicleTableViewModel"
+import { useInfiniteScroll } from "../../../core/hooks/useInfiniteScroll"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table"
 
 const VehicleTable: React.FC = () => {
-  // Dados de exemplo
-  const vehicles = [
-    { id: 1, name: 'Veículo 1', status: 'Ativo' },
-    { id: 2, name: 'Veículo 2', status: 'Inativo' },
-  ];
+  const { vehicles, hasMore, nextPage } = useVehicleTableViewModel()
+  const sentinelRef = useInfiniteScroll({ hasMore, onLoadMore: nextPage })
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full bg-white border border-gray-200">
-        <thead>
-          <tr>
-            <th className="py-2 px-4 border-b">ID</th>
-            <th className="py-2 px-4 border-b">Nome</th>
-            <th className="py-2 px-4 border-b">Status</th>
-          </tr>
-        </thead>
-        <tbody>
+    <div className="overflow-auto max-h-[500px] border rounded-md">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Placa</TableHead>
+            <TableHead>Frota</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Modelo</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {vehicles.map((vehicle) => (
-            <tr key={vehicle.id}>
-              <td className="py-2 px-4 border-b">{vehicle.id}</td>
-              <td className="py-2 px-4 border-b">{vehicle.name}</td>
-              <td className="py-2 px-4 border-b">{vehicle.status}</td>
-            </tr>
+            <TableRow key={vehicle.id}>
+              <TableCell>{vehicle.placa}</TableCell>
+              <TableCell>{vehicle.frota}</TableCell>
+              <TableCell>{vehicle.tipo}</TableCell>
+              <TableCell>{vehicle.modelo}</TableCell>
+              <TableCell>{vehicle.status}</TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
+      <div ref={sentinelRef} className="h-6" />
     </div>
-  );
-};
+  )
+}
 
-export default VehicleTable;
+export default VehicleTable
