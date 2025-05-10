@@ -2,24 +2,25 @@ import { useEffect, useRef, useCallback } from "react"
 
 interface Props {
   hasMore: boolean
+  loading: boolean
   onLoadMore: () => void
 }
 
-export function useInfiniteScroll({ hasMore, onLoadMore }: Props) {
+export function useInfiniteScroll({ hasMore, loading, onLoadMore }: Props) {
   const observerRef = useRef<IntersectionObserver | null>(null)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   const observe = useCallback(() => {
-    if (!sentinelRef.current || !hasMore) return
+    if (!sentinelRef.current || !hasMore || loading) return
 
     observerRef.current = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
+      if (entry.isIntersecting && !loading) {
         onLoadMore()
       }
     })
 
     observerRef.current.observe(sentinelRef.current)
-  }, [hasMore, onLoadMore])
+  }, [hasMore, loading, onLoadMore])
 
   useEffect(() => {
     observe()

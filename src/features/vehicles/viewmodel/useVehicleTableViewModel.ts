@@ -1,43 +1,83 @@
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import { http } from "../../../core/service/http"
+import { ENDPOINTS } from "../../../core/utils/EndPoints"
 
-//Colocar em models
 export interface Vehicle {
-  id: number
+  id: string
   placa: string
-  frota: string
+  frota: string | null
   tipo: string
   modelo: string
   status: string
+}
+
+interface VehicleApi {
+  id: string
+  plate: string
+  fleet: string | null
+  type: string
+  model: string
+  nameOwner: string
+  status: string
+  createdAt: string
+}
+
+interface APIResponse {
+  content: {
+    vehicles: VehicleApi[]
+    totalPages: number
+    page: number
+    perPage: number
+  }
 }
 
 export function useVehicleTableViewModel() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    const fetchVehicles = async () => {
-      await new Promise((r) => setTimeout(r, 300))
+  const fetchVehicles = async (currentPage: number) => {
+    if (loading || !hasMore) return
+    setLoading(true)
 
-      const newVehicles = Array.from({ length: 10 }).map((_, idx) => ({
-        id: (page - 1) * 10 + idx + 1,
-        placa: `ABC-${idx + 100}`,
-        frota: `Frota ${Math.floor(Math.random() * 5) + 1}`,
-        tipo: "Caminhão",
-        modelo: `Modelo ${Math.floor(Math.random() * 100)}`,
-        status: Math.random() > 0.5 ? "Ativo" : "Inativo"
+    try {
+      const response = await http<APIResponse>(
+        `${ENDPOINTS.VEHICLES}?type=tracked&page=${currentPage}&perPage=20`
+      )
+
+      const mapped = response.content.vehicles.map((v): Vehicle => ({
+        id: v.id,
+        placa: v.plate,
+        frota: v.fleet,
+        tipo: v.type,
+        modelo: v.model,
+        status: v.status
       }))
 
-      setVehicles((prev) => [...prev, ...newVehicles])
-      if (page >= 5) setHasMore(false)
-    }
+      setVehicles((prev) => {
+        const merged = [...prev, ...mapped]
+        const unique = Array.from(new Map(merged.map(v => [v.id, v])).values())
+        return unique
+      })
 
-    fetchVehicles()
-  }, [page])
+      setHasMore(response.content.page < response.content.totalPages)
+      setPage(currentPage + 1)
+    } catch (error) {
+      console.error("Erro ao buscar veículos:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchVehicles(1) 
+  }, [])
 
   return {
     vehicles,
     hasMore,
-    nextPage: () => setPage((prev) => prev + 1),
+    loading,
+    nextPage: () => fetchVehicles(page)
   }
 }
