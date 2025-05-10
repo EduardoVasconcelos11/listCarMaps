@@ -1,18 +1,12 @@
 import React from "react"
 import { useVehicleTableViewModel } from "../viewmodel/useVehicleTableViewModel"
 import { useInfiniteScroll } from "../../../core/hooks/useInfiniteScroll"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table"
 
 const VehicleTable: React.FC = () => {
-  const { vehicles, hasMore, nextPage } = useVehicleTableViewModel()
-  const sentinelRef = useInfiniteScroll({ hasMore, onLoadMore: nextPage })
+  const { vehicles, hasMore, nextPage, loading } = useVehicleTableViewModel()
+  const sentinelRef = useInfiniteScroll({ hasMore, onLoadMore: nextPage, loading })
+
 
   return (
     <div className="overflow-auto max-h-[500px] border rounded-md">
