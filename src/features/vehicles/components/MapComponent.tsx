@@ -7,6 +7,7 @@ import {
 } from "@react-google-maps/api"
 import { Car } from "lucide-react"
 import type { LocationVehicle } from "../models/location-vehicle.model"
+import { getColorByVehicleId } from "../../../core/utils/ColorUtils"
 
 interface MapComponentProps {
   positions: LocationVehicle[]
@@ -48,26 +49,36 @@ const MapComponent: React.FC<MapComponentProps> = ({ positions, loading, error }
           center={defaultCenter}
           zoom={6}
         >
-          {positions.map((vehicle) => (
-            <OverlayView
-              key={vehicle.id + vehicle.plate}
-              position={{ lat: vehicle.lat, lng: vehicle.lng }}
-              mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-              getPixelPositionOffset={getPixelPositionOffset}
-            >
-              <div
-                className="cursor-pointer"
-                onClick={() => setSelected(vehicle.id)}
+          {positions.map((vehicle) => {
+            const color = getColorByVehicleId(vehicle.id)
+
+            return (
+              <OverlayView
+                key={vehicle.id + vehicle.plate}
+                position={{ lat: vehicle.lat, lng: vehicle.lng }}
+                mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                getPixelPositionOffset={getPixelPositionOffset}
               >
-                <div className="relative flex items-center justify-center">
-                  <div className="rounded-full bg-[#FF4B00] border-[3px] border-white p-2 shadow-lg">
-                    <Car className="text-white" size={24} />
+                <div
+                  className="cursor-pointer"
+                  onClick={() => setSelected(vehicle.id)}
+                >
+                  <div className="relative flex items-center justify-center">
+                    <div
+                      className="rounded-full border-[3px] border-white p-2 shadow-lg"
+                      style={{ backgroundColor: color }}
+                    >
+                      <Car className="text-white" size={24} />
+                    </div>
+                    <div
+                      className="absolute bottom-[-6px] w-0 h-0 border-l-[8px] border-r-[8px] border-t-[10px] border-l-transparent border-r-transparent"
+                      style={{ borderTopColor: color }}
+                    />
                   </div>
-                  <div className="absolute bottom-[-6px] w-0 h-0 border-l-[8px] border-r-[8px] border-t-[10px] border-l-transparent border-r-transparent border-t-[#FF4B00]" />
                 </div>
-              </div>
-            </OverlayView>
-          ))}
+              </OverlayView>
+            )
+          })}
 
           {positions.map(vehicle => (
             selected === vehicle.id && (

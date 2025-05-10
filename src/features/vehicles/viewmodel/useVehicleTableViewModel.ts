@@ -5,7 +5,7 @@ import type { LocationVehicle } from "../models/location-vehicle.model"
 import type { Vehicle } from "../models/vehicle.model"
 import type { APIResponse } from "../repository/dto/vehicle-response.dto"
 
-function getLatestLocationsPerPlate(data: LocationVehicle[]): LocationVehicle[] {
+function getLatestLocationsPerPlate(data: LocationVehicle[] = []): LocationVehicle[] {
   const map = new Map<string, LocationVehicle>()
 
   for (const loc of data) {
@@ -18,21 +18,32 @@ function getLatestLocationsPerPlate(data: LocationVehicle[]): LocationVehicle[] 
   return Array.from(map.values())
 }
 
-export function useVehicleTableViewModel() {
+export function useVehicleTableViewModel(type: "tracked" | "others") {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [locations, setLocations] = useState<LocationVehicle[]>([])
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
+  const [filter, setFilter] = useState<string>("") 
 
-  const fetchVehicles = async (currentPage: number) => {
-    if (loading || !hasMore) return
+  const fetchVehicles = async (currentPage: number, reset = false, vehicle:string = '') => {
+    if (loading || (!hasMore && !reset)) return
     setLoading(true)
 
     try {
-      const response = await http<APIResponse>(
-        `${ENDPOINTS.VEHICLES}?type=tracked&page=${currentPage}&perPage=20`
-      )
+      const queryParams = new URLSearchParams({
+        type,
+        page: currentPage.toString(),
+        perPage: "20"
+      })
+
+      console.log('Antes '+filter);
+      if (vehicle.trim() !== "") {
+        queryParams.set("filter", vehicle.trim())
+      }
+      console.log('depois '+filter);
+
+      const response = await http<APIResponse>(`${ENDPOINTS.VEHICLES}?${queryParams.toString()}`)
 
       const mappedVehicles = response.content.vehicles.map((v): Vehicle => ({
         id: v.id,
@@ -43,14 +54,13 @@ export function useVehicleTableViewModel() {
         status: v.status
       }))
 
-      setVehicles((prev) => {
-        const merged = [...prev, ...mappedVehicles]
-        const unique = Array.from(new Map(merged.map(v => [v.id, v])).values())
-        return unique
+      setVehicles(prev => {
+        const merged = reset ? mappedVehicles : [...prev, ...mappedVehicles]
+        return Array.from(new Map(merged.map(v => [v.id, v])).values())
       })
 
-      setLocations((prev) => {
-        const merged = [...prev, ...response.content.locationVehicles]
+      setLocations(prev => {
+        const merged = reset ? response.content.locationVehicles : [...prev, ...response.content.locationVehicles]
         return getLatestLocationsPerPlate(merged)
       })
 
@@ -63,15 +73,27 @@ export function useVehicleTableViewModel() {
     }
   }
 
+  const search = (term: string) => {
+    console.log('Antes de setar', term);
+    setFilter(term)
+    setVehicles([])
+    console.log('Depois de setar', term);
+    setLocations([])
+    setPage(1)
+    setHasMore(true)
+    fetchVehicles(1, true, term)
+  }
+
   useEffect(() => {
-    fetchVehicles(1)
-  }, [])
+    fetchVehicles(1, true)
+  }, [type])
 
   return {
     vehicles,
     locations,
     hasMore,
     loading,
-    nextPage: () => fetchVehicles(page)
+    nextPage: () => fetchVehicles(page),
+    search
   }
 }
