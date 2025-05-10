@@ -25,26 +25,31 @@ export function useMapViewModel() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await http<ApiResponse>(`${ENDPOINTS.VEHICLES}?type=tracked&page=1`)
+useEffect(() => {
+  let interval: NodeJS.Timeout
 
-        if (!data.content || !data.content.locationVehicles) {
-          throw new Error("Nenhum veículo rastreado encontrado")
-        }
+  async function load() {
+    try {
+      const data = await http<ApiResponse>(`${ENDPOINTS.VEHICLES}?type=tracked&page=1&perPage=40`)
 
-        const latestLocations = getLatestLocationsPerPlate(data.content.locationVehicles)
-        setPositions(latestLocations)
-      } catch (err: any) {
-        setError(err.message || "Erro ao buscar posições")
-      } finally {
-        setLoading(false)
+      if (!data.content || !data.content.locationVehicles) {
+        throw new Error("Nenhum veículo rastreado encontrado")
       }
-    }
 
-    load()
-  }, [])
+      const latestLocations = getLatestLocationsPerPlate(data.content.locationVehicles)
+      setPositions(latestLocations)
+    } catch (err: any) {
+      setError(err.message || "Erro ao buscar posições")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  load()
+  interval = setInterval(load, 2 * 60 * 1000)
+
+  return () => clearInterval(interval)
+}, [])
 
   return { positions, loading, error }
 }

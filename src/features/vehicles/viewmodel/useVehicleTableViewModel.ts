@@ -1,38 +1,26 @@
 import { useEffect, useState } from "react"
 import { http } from "../../../core/service/http"
 import { ENDPOINTS } from "../../../core/utils/EndPoints"
+import type { LocationVehicle } from "../models/location-vehicle.model"
+import type { Vehicle } from "../models/vehicle.model"
+import type { APIResponse } from "../repository/dto/vehicle-response.dto"
 
-export interface Vehicle {
-  id: string
-  placa: string
-  frota: string | null
-  tipo: string
-  modelo: string
-  status: string
-}
+function getLatestLocationsPerPlate(data: LocationVehicle[]): LocationVehicle[] {
+  const map = new Map<string, LocationVehicle>()
 
-interface VehicleApi {
-  id: string
-  plate: string
-  fleet: string | null
-  type: string
-  model: string
-  nameOwner: string
-  status: string
-  createdAt: string
-}
-
-interface APIResponse {
-  content: {
-    vehicles: VehicleApi[]
-    totalPages: number
-    page: number
-    perPage: number
+  for (const loc of data) {
+    const existing = map.get(loc.plate)
+    if (!existing || new Date(loc.createdAt) > new Date(existing.createdAt)) {
+      map.set(loc.plate, loc)
+    }
   }
+
+  return Array.from(map.values())
 }
 
 export function useVehicleTableViewModel() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [locations, setLocations] = useState<LocationVehicle[]>([])
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -46,7 +34,7 @@ export function useVehicleTableViewModel() {
         `${ENDPOINTS.VEHICLES}?type=tracked&page=${currentPage}&perPage=20`
       )
 
-      const mapped = response.content.vehicles.map((v): Vehicle => ({
+      const mappedVehicles = response.content.vehicles.map((v): Vehicle => ({
         id: v.id,
         placa: v.plate,
         frota: v.fleet,
@@ -56,9 +44,14 @@ export function useVehicleTableViewModel() {
       }))
 
       setVehicles((prev) => {
-        const merged = [...prev, ...mapped]
+        const merged = [...prev, ...mappedVehicles]
         const unique = Array.from(new Map(merged.map(v => [v.id, v])).values())
         return unique
+      })
+
+      setLocations((prev) => {
+        const merged = [...prev, ...response.content.locationVehicles]
+        return getLatestLocationsPerPlate(merged)
       })
 
       setHasMore(response.content.page < response.content.totalPages)
@@ -71,11 +64,12 @@ export function useVehicleTableViewModel() {
   }
 
   useEffect(() => {
-    fetchVehicles(1) 
+    fetchVehicles(1)
   }, [])
 
   return {
     vehicles,
+    locations,
     hasMore,
     loading,
     nextPage: () => fetchVehicles(page)
